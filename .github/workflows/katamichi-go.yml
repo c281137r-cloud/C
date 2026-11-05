@@ -1,0 +1,64 @@
+name: 片道GO! 新着チェック
+
+on:
+  schedule:
+    # 10 分ごと（GitHub の混雑状況により数分〜十数分遅れることがあります）
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+    inputs:
+      test_notify:
+        description: "通知先の疎通テストだけ行う（受付中の 1 件を送信）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: katamichi-go
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # 通知先（Settings → Secrets and variables → Actions → Secrets）
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      NTFY_SERVER: ${{ vars.NTFY_SERVER }}
+      LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+      LINE_TO: ${{ secrets.LINE_TO }}
+      # 絞り込み（Settings → Secrets and variables → Actions → Variables）
+      FILTER_START_AREAS: ${{ vars.FILTER_START_AREAS }}
+      FILTER_RETURN_AREAS: ${{ vars.FILTER_RETURN_AREAS }}
+      FILTER_KEYWORDS: ${{ vars.FILTER_KEYWORDS }}
+      FILTER_EXCLUDE_KEYWORDS: ${{ vars.FILTER_EXCLUDE_KEYWORDS }}
+      NOTIFY_ON_FIRST_RUN: ${{ vars.NOTIFY_ON_FIRST_RUN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 疎通テスト
+        if: ${{ inputs.test_notify }}
+        run: python katamichi_go/watcher.py --test-notify
+
+      - name: 新着チェック
+        if: ${{ !inputs.test_notify }}
+        run: python katamichi_go/watcher.py --state state/katamichi_go.json
+
+      - name: 既読状態を保存
+        if: ${{ !inputs.test_notify }}
+        run: |
+          if [ -n "$(git status --porcelain state/)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add state/
+            git commit -m "片道GO!: 既読状態を更新 [skip ci]"
+            git pull --rebase
+            git push
+          fi
