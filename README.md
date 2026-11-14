@@ -85,3 +85,12 @@ apex_coach/
   cli.py      analyze / watch コマンド、履歴管理
 config.example.toml  プロフィールと解析設定のひな形
 ```
+
+## テスト
+
+API キーなしで、Claude の返事以外の処理（切り出し・区間分割・レポート保存・履歴・フォルダ監視・API リクエストの形）を確認できます。
+
+```bash
+pip install pytest
+python -m pytest tests -q
+```

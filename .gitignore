@@ -8,3 +8,4 @@ inbox/
 *.webm
 *.mkv
 *.mov
+.pytest_cache/
