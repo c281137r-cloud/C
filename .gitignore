@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+config.toml
+reports/
+inbox/
+*.mp4
+*.webm
+*.mkv
+*.mov
